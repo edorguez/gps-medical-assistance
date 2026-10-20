@@ -1,0 +1,100 @@
+name: gps-medical-assistance
+
+services:
+  gps-medical-assistance-db:
+    container_name: gps-medical-assistance-db
+    image: postgres:16.2
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-GpsMedicalAssistanceDB}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ${DATA_ROOT}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-GpsMedicalAssistanceDB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - internal
+    restart: unless-stopped
+
+  gps-medical-assistance-mongo:
+    container_name: gps-medical-assistance-mongo
+    image: mongo:6.0
+    environment:
+      MONGO_INITDB_DATABASE: gps-medical-assistance
+    volumes:
+      - ${DATA_ROOT}/mongo:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" | grep 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - internal
+    restart: unless-stopped
+
+  gps-medical-assistance-face:
+    container_name: gps-medical-assistance-face
+    build:
+      context: .
+      dockerfile: deploy/gps-medical-assistance-face.Dockerfile
+    environment:
+      MONGODB_URI: mongodb://gps-medical-assistance-mongo:27017/gps-medical-assistance
+      PORT: "3000"
+      NODE_ENV: production
+    depends_on:
+      gps-medical-assistance-mongo:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: unless-stopped
+
+  gps-medical-assistance-api:
+    container_name: gps-medical-assistance-api
+    build:
+      context: .
+      dockerfile: deploy/gps-medical-assistance-api.Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Host=gps-medical-assistance-db;Port=5432;Database=${POSTGRES_DB:-GpsMedicalAssistanceDB};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}"
+      FaceRecognitionService__BaseUrl: http://gps-medical-assistance-face:3000
+      TwilioSMSSettings__AccountSID: ${TWILIO_ACCOUNT_SID:-}
+      TwilioSMSSettings__AuthToken: ${TWILIO_AUTH_TOKEN:-}
+      TwilioSMSSettings__PhoneNumber: ${TWILIO_PHONE_NUMBER:-}
+    volumes:
+      - ${DATA_ROOT}/uploads/UserFaceImage:/app/UserFaceImage
+    depends_on:
+      gps-medical-assistance-db:
+        condition: service_healthy
+      gps-medical-assistance-face:
+        condition: service_started
+    networks:
+      - internal
+    restart: unless-stopped
+
+  gps-medical-assistance-edge:
+    container_name: gps-medical-assistance-edge
+    build:
+      context: .
+      dockerfile: deploy/gps-medical-assistance-front.Dockerfile
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${EDGE_PORT:-8082}:80"
+    depends_on:
+      gps-medical-assistance-api:
+        condition: service_started
+    networks:
+      - internal
+      - shared-edge
+    restart: unless-stopped
+
+networks:
+  internal:
+    name: gps-medical-assistance-internal
+  shared-edge:
+    external: true
+    name: shared-edge

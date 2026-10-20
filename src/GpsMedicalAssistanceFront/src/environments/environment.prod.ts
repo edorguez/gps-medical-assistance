@@ -1,5 +1,6 @@
 export const environment = {
   production: true,
-  API_URL: 'https://localhost:7109/api',
+  // Same-origin API. Nginx (gps-medical-assistance-edge) proxies /api to the .NET API.
+  API_URL: '/api',
   API_MAP_SEARCH_LOCATION: 'https://nominatim.openstreetmap.org'
 };

@@ -3,17 +3,19 @@ using System.Text.Json;
 using Entities.Utils;
 using Interfaces.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 
 namespace Repository.Services
 {
     public class FaceRecognitionServiceRepository : IFaceRecognitionServiceRepository
     {
         private readonly HttpClient _http;
-        private string _baseURL = "http://localhost:3000";
+        private readonly string _baseURL;
 
-        public FaceRecognitionServiceRepository(HttpClient http)
+        public FaceRecognitionServiceRepository(HttpClient http, IConfiguration configuration)
         {
             _http = http;
+            _baseURL = configuration["FaceRecognitionService:BaseUrl"] ?? "http://localhost:3000";
         }
 
         public async Task<FaceRecognitionResult> CheckFace(IFormFile file)
