@@ -38,7 +38,7 @@ curl -f http://localhost:8082/api/familyType
 sudo mkdir -p /opt/docker-projects /opt/docker-projects-data
 sudo chown -R "$USER":"$USER" /opt/docker-projects /opt/docker-projects-data
 
-git clone https://github.com/EdoRguez/gps-medical-assistance.git /opt/docker-projects/gps-medical-assistance
+git clone https://github.com/edorguez/gps-medical-assistance.git /opt/docker-projects/gps-medical-assistance
 cd /opt/docker-projects/gps-medical-assistance
 
 cp .env.example .env
