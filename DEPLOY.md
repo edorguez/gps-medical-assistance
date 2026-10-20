@@ -47,6 +47,8 @@ nano .env
 docker compose up -d --build
 ```
 
+Usa una contraseña de Postgres simple (letras/números) o ajusta la cadena de conexión; caracteres como `;` pueden romper el connection string de .NET.
+
 ## Persistencia
 
 Todo queda fuera de los contenedores:
